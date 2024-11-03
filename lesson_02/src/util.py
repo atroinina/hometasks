@@ -1,4 +1,6 @@
 import os
+import shutil
+
 from dotenv import load_dotenv
 
 # Load secret authorization key
@@ -37,7 +39,12 @@ def clear_directory(path: str) -> None:
     Parameters:
     path (str): The path of the directory to be cleared.
     """
-    for file in os.listdir(path):
-        file_path = os.path.join(path, file)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
