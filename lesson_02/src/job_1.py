@@ -51,45 +51,48 @@ def fetch_sales_data(raw_dir: str) -> None:
     auth_token = get_authorization_key()
     headers = {'Authorization': auth_token}
     url = 'https://fake-api-vycpfa6oca-uc.a.run.app/sales'
-    today = '2022-08-09'
-    current_page = 1
+    dates = ['2022-08-09','2022-08-10','2022-08-11']
+
 
     # Format data for the filepath
 
     # Make directory to save a file and make sure that it is empty
     os.makedirs(raw_dir, exist_ok=True)
     clear_directory(raw_dir)
-    while True:
-        response = requests.get(
-            url,
-            headers=headers,
-            params={'date': today, 'page': current_page}
-        )
+    for date in dates:
+        current_page = 1
+        print(f"New day: {date}\n")
+        while True:
+            response = requests.get(
+                url,
+                headers=headers,
+                params={'date': date, 'page': current_page}
+            )
 
-        if response.status_code == 404:
-            if current_page == 1:
-                raise Exception(
-                    f'Error fetching data: {response.status_code}.'
-                )
-            else:
-                print("The end of the file reached")
-                break
+            if response.status_code == 404:
+                if current_page == 1:
+                    raise Exception(
+                        f'Error fetching data: {response.status_code}.'
+                    )
+                else:
+                    print("The end of the file reached")
+                    break
 
-        if response.status_code != 200 and response.status_code != 404:
-            raise Exception(f"Error fetching data: {response.status_code}.")
+            if response.status_code != 200 and response.status_code != 404:
+                raise Exception(f"Error fetching data: {response.status_code}.")
 
-        data = response.json()
+            data = response.json()
 
-        # Give a name to a file
-        file_name = f"sales-{today}_{current_page}.json"
-        file_path = os.path.join(raw_dir, file_name)
+            # Give a name to a file
+            file_name = f"sales-{date}_{current_page}.json"
+            file_path = os.path.join(raw_dir, file_name)
 
-        # Save the file as JSON
-        with open(file_path, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
+            # Save the file as JSON
+            with open(file_path, 'w') as json_file:
+                json.dump(data, json_file, indent=4)
 
-        current_page += 1  # Increment page counter
-        print(f"Sales data saved to {file_path}")
+            current_page += 1  # Increment page counter
+            print(f"Sales data saved to {file_path}")
 
 
 if __name__ == "__main__":
