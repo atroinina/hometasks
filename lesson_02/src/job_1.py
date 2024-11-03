@@ -60,8 +60,11 @@ def fetch_sales_data(raw_dir: str) -> None:
     os.makedirs(raw_dir, exist_ok=True)
     clear_directory(raw_dir)
     for date in dates:
+        day_dir = os.path.join(raw_dir, date)
+        os.makedirs(day_dir, exist_ok=True)
         current_page = 1
         print(f"New day: {date}\n")
+
         while True:
             response = requests.get(
                 url,
@@ -85,7 +88,7 @@ def fetch_sales_data(raw_dir: str) -> None:
 
             # Give a name to a file
             file_name = f"sales-{date}_{current_page}.json"
-            file_path = os.path.join(raw_dir, file_name)
+            file_path = os.path.join(day_dir, file_name)
 
             # Save the file as JSON
             with open(file_path, 'w') as json_file:
