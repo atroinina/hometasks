@@ -34,7 +34,7 @@ from util import get_authorization_key, clear_directory, get_base_dir
 
 
 # Load data from API
-def fetch_sales_data(raw_dir: str) -> None:
+def fetch_sales_data(raw_dir: str, dates:list[str] = ['2022-08-09','2022-08-10','2022-08-11']) -> None:
     """Fetch sales data from an API.
 
     The function retrieves data from the API, clears the raw directory,
@@ -51,7 +51,6 @@ def fetch_sales_data(raw_dir: str) -> None:
     auth_token = get_authorization_key()
     headers = {'Authorization': auth_token}
     url = 'https://fake-api-vycpfa6oca-uc.a.run.app/sales'
-    dates = ['2022-08-09','2022-08-10','2022-08-11']
 
 
     # Format data for the filepath
