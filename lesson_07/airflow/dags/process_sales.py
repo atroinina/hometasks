@@ -5,7 +5,7 @@ from requests import post
 
 # Define default arguments
 default_args = {
-    'owner': 'user',  # Replace with your name
+    'owner': 'user',
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
@@ -15,7 +15,7 @@ with DAG(
         dag_id='process_sales',
         default_args=default_args,
         description='DAG to process sales data by extracting and converting to Avro',
-        schedule_interval='* * * * *',  # Run daily at 1 AM UTC
+        schedule_interval='0 1 * * *',  # Run daily at 1 AM UTC
         start_date=datetime(2022, 8, 9),
         end_date=datetime(2022, 8, 11),
         max_active_runs=1,
@@ -27,9 +27,8 @@ with DAG(
         raw_dir = f"C:\\Users\\small\\PycharmProjects\\FlaskServerForJobs\\lesson_02\\fetched_data\\raw\\{execution_date}"
 
         response = post(
-            'http://localhost:8081',  # Assuming job_1 runs on port 8081
-            json={'raw_dir': raw_dir, 'dates': [execution_date]},
-            headers={'Content-Type': 'application/json'}
+            url="http://host.docker.internal:8081",  # Assuming job_1 runs on port 8081
+            json={'raw_dir': raw_dir, 'dates': [execution_date]}
         )
 
         if response.status_code != 201:
@@ -51,9 +50,8 @@ with DAG(
 
 
         response = post(
-            'http://localhost:8082',  # Assuming job_2 runs on port 8082
-            json={'raw_dir': raw_dir, 'stg_dir': stg_dir},
-            headers={'Content-Type': 'application/json'}
+            url="http://host.docker.internal:8082",  # Assuming job_2 runs on port 8082
+            json={'raw_dir': raw_dir, 'stg_dir': stg_dir}
         )
 
         if response.status_code != 201:
