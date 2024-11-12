@@ -46,9 +46,10 @@ with DAG(
     # Task 2: Convert JSON to Avro
     def convert_to_avro(**kwargs):
         execution_date = kwargs['ds']
-        raw_dir = f"C:\\Users\\small\\PycharmProjects\\FlaskServerForJobs\\lesson_02\\fetched_data\\raw\\{execution_date}"
-        stg_dir = f"C:\\Users\\small\\PycharmProjects\\FlaskServerForJobs\\lesson_02\\fetched_data\\stg\\{execution_date}"
-
+        base_path = os.path.join(
+            "C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02", "fetched_data")
+        raw_dir = os.path.join(base_path, "raw", execution_date)
+        stg_dir = os.path.join(base_path, "stg", execution_date)
 
         response = post(
             url="http://host.docker.internal:8082",  # Assuming job_2 runs on port 8082
