@@ -34,7 +34,7 @@ from util import get_authorization_key, clear_directory, get_base_dir
 
 
 # Load data from API
-def fetch_sales_data(raw_dir: str, dates:list[str] = ['2022-08-09','2022-08-10','2022-08-11']) -> None:
+def fetch_sales_data(raw_dir: str, dates:list[str]) -> None:
     """Fetch sales data from an API.
 
     The function retrieves data from the API, clears the raw directory,
