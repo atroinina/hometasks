@@ -28,16 +28,12 @@ def extract_data_from_api(**kwargs):
     print(f"Data extraction successful for {execution_date}")
 
 
-# Task 2: Convert JSON to Avro
-def convert_to_avro(**kwargs):
+# Task 2: Convert JSON to Avro with parameters for flexibility
+def convert_to_avro(raw_dir, stg_dir, url, **kwargs):
     execution_date = kwargs['ds']
-    base_path = os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02",
-                             "fetched_data")
-    raw_dir = os.path.join(base_path, "raw", execution_date)
-    stg_dir = os.path.join(base_path, "stg", execution_date)
 
     response = post(
-        url="http://host.docker.internal:8082",  # Assuming job_2 runs on port 8082
+        url=url,
         json={'raw_dir': raw_dir, 'stg_dir': stg_dir}
     )
 
@@ -66,6 +62,13 @@ with DAG(
     convert_to_avro_task = PythonOperator(
         task_id='convert_to_avro',
         python_callable=convert_to_avro,
+        op_kwargs={
+            'raw_dir': os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02",
+                                    "fetched_data", "raw", "{{ ds }}"),
+            'stg_dir': os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02",
+                                    "fetched_data", "stg", "{{ ds }}"),
+            'url': "http://host.docker.internal:8082"  # Assuming job_2 runs on port 8082
+        },
         provide_context=True  # Ensures kwargs like `ds` are available
     )
 
