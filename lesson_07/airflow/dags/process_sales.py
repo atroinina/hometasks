@@ -11,6 +11,41 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
+
+# Task 1: Extract data from API
+def extract_data_from_api(**kwargs):
+    execution_date = kwargs['ds']
+    raw_dir = os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02", "fetched_data",
+                           "raw", execution_date)
+
+    response = post(
+        url="http://host.docker.internal:8081",  # Assuming job_1 runs on port 8081
+        json={'raw_dir': raw_dir, 'dates': [execution_date]}
+    )
+
+    if response.status_code != 201:
+        raise Exception(f"Failed to extract data for {execution_date}. Status code: {response.status_code}")
+    print(f"Data extraction successful for {execution_date}")
+
+
+# Task 2: Convert JSON to Avro
+def convert_to_avro(**kwargs):
+    execution_date = kwargs['ds']
+    base_path = os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02",
+                             "fetched_data")
+    raw_dir = os.path.join(base_path, "raw", execution_date)
+    stg_dir = os.path.join(base_path, "stg", execution_date)
+
+    response = post(
+        url="http://host.docker.internal:8082",  # Assuming job_2 runs on port 8082
+        json={'raw_dir': raw_dir, 'stg_dir': stg_dir}
+    )
+
+    if response.status_code != 201:
+        raise Exception(f"Failed to convert data to Avro for {execution_date}. Status code: {response.status_code}")
+    print(f"Conversion to Avro successful for {execution_date}")
+
+
 # Define the DAG
 with DAG(
         dag_id='process_sales',
@@ -22,49 +57,17 @@ with DAG(
         max_active_runs=1,
         catchup=True,
 ) as dag:
-    # Task 1: Extract data from API
-    def extract_data_from_api(**kwargs):
-        execution_date = kwargs['ds']
-        raw_dir = os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02", "fetched_data", "raw", execution_date)
-
-        response = post(
-            url="http://host.docker.internal:8081",  # Assuming job_1 runs on port 8081
-            json={'raw_dir': raw_dir, 'dates': [execution_date]}
-        )
-
-        if response.status_code != 201:
-            raise Exception(f"Failed to extract data for {execution_date}. Status code: {response.status_code}")
-        print(f"Data extraction successful for {execution_date}")
-
-
-    extract_data_from_api = PythonOperator(
+    extract_data_task = PythonOperator(
         task_id='extract_data_from_api',
-        python_callable=extract_data_from_api
+        python_callable=extract_data_from_api,
+        provide_context=True  # Ensures kwargs like `ds` are available
     )
 
-
-    # Task 2: Convert JSON to Avro
-    def convert_to_avro(**kwargs):
-        execution_date = kwargs['ds']
-        base_path = os.path.join(
-            "C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02", "fetched_data")
-        raw_dir = os.path.join(base_path, "raw", execution_date)
-        stg_dir = os.path.join(base_path, "stg", execution_date)
-
-        response = post(
-            url="http://host.docker.internal:8082",  # Assuming job_2 runs on port 8082
-            json={'raw_dir': raw_dir, 'stg_dir': stg_dir}
-        )
-
-        if response.status_code != 201:
-            raise Exception(f"Failed to convert data to Avro for {execution_date}. Status code: {response.status_code}")
-        print(f"Conversion to Avro successful for {execution_date}")
-
-
-    convert_to_avro = PythonOperator(
+    convert_to_avro_task = PythonOperator(
         task_id='convert_to_avro',
-        python_callable=convert_to_avro
+        python_callable=convert_to_avro,
+        provide_context=True  # Ensures kwargs like `ds` are available
     )
 
     # Set task dependencies
-    extract_data_from_api >> convert_to_avro
+    extract_data_task >> convert_to_avro_task
