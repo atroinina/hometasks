@@ -101,4 +101,4 @@ if __name__ == "__main__":
     # Define path to raw directory
     raw_dir = os.path.join(get_base_dir(), 'raw')
     os.makedirs(raw_dir, exist_ok=True)
-    fetch_sales_data(raw_dir)
+    fetch_sales_data(raw_dir, ['2022-08-09','2022-08-10','2022-08-11'])
