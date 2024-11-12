@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -24,7 +25,7 @@ with DAG(
     # Task 1: Extract data from API
     def extract_data_from_api(**kwargs):
         execution_date = kwargs['ds']
-        raw_dir = f"C:\\Users\\small\\PycharmProjects\\FlaskServerForJobs\\lesson_02\\fetched_data\\raw\\{execution_date}"
+        raw_dir = os.path.join("C:", "Users", "small", "PycharmProjects", "FlaskServerForJobs", "lesson_02", "fetched_data", "raw", execution_date)
 
         response = post(
             url="http://host.docker.internal:8081",  # Assuming job_1 runs on port 8081
