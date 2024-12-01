@@ -52,7 +52,6 @@ def process_user_profiles_to_gold():
 
     # Зберігаємо результат у `gold` як таблицю `user_profiles_enriched`
     df_enriched.write.option("header", "true").json(f"{output_path_gold}/user_profiles_enriched", mode="overwrite")
-    print("aaaaa")
     # Закриваємо сесію Spark
     spark.stop()
 
