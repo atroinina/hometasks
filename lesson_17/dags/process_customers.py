@@ -77,3 +77,8 @@ def process_customers_data():
     # Закриваємо сесію Spark
     spark.stop()
 
+process_customers_task = PythonOperator(
+    task_id='process_customers',
+    python_callable=process_customers_data,
+    dag=dag,
+)
