@@ -17,7 +17,7 @@ dag = DAG(
     'process_customers_to_bronze_and_silver',
     default_args=default_args,
     description='Process customer data to bronze and silver',
-    schedule_interval=None,  # для ручного запуску
+    schedule_interval=None,
 )
 
 def process_customers_data():
