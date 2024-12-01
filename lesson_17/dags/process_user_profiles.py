@@ -2,7 +2,8 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, coalesce, lit
+from pyspark.sql.functions import col, regexp_replace
+import os
 
 # ініціалізація DAG
 default_args = {
@@ -20,29 +21,34 @@ dag = DAG(
 )
 
 def process_user_profiles():
-    # Шлях до вхідних та вихідних даних
-    input_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\data\user_profiles"
-    output_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver"
+    # Set Hadoop-related environment variables
+    os.environ['HADOOP_HOME'] = r'C:\hadoop'
+    os.environ['PATH'] += os.pathsep + r'C:\hadoop\bin'
 
-    # Створення Spark  сесії
-    spark = SparkSession.builder.appName("UserProfileProcessing").getOrCreate()
+    # Шлях до даних user_profiles
+    user_profiles_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\data\user_profiles"
+    output_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\customers"
 
-    # Читання JSONLine фаqлів
-    df = spark.read.json(input_path, multiLine=False)
+    # Ініціалізація сесії Spark
+    spark = SparkSession.builder.appName('ProcessUserProfiles').getOrCreate()
 
-    # Перетворення даних відповідно до схеми `silver`
+    # Читання даних з файлів JSONLine
+    user_profiles_df = spark.read.json(user_profiles_path)
 
-    df_cleaned = df.withColumnRenamed("user_id", "client_id") \
-        .withColumnRenamed("first_name", "first_name") \
-        .withColumnRenamed("last_name", "last_name") \
-        .withColumnRenamed("email", "email") \
-        .withColumnRenamed("state", "state") \
-        .withColumnRenamed("age", "age")
+    # Переглянемо структуру даних
+    user_profiles_df.printSchema()
 
-    # Зберігаємо дані
-    df_cleaned.write.option("header", "true").json(output_path_silver, mode="overwrite")
-    print(f"Processed and saved user profiles to silver: {output_path_silver}")
+    # Трансформація даних з user_profiles: очищення та заповнення необхідних колонок
+    user_profiles_cleaned = (
+        user_profiles_df.withColumn("phone_number",
+                                    regexp_replace(col("phone_number"), "[^0-9]", "")))
 
+    # Define the output path where you want to save the cleaned data
+    output_path_json = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\cleaned_customers.json"
+
+    # Save the cleaned DataFrame to JSON format (overwriting any existing files)
+    user_profiles_cleaned.write.mode("overwrite").json(output_path_json)
+    print(f"Cleaned data saved to: {output_path_json}")
     # Закриваємо сесію Spark
     spark.stop()
 

@@ -14,66 +14,61 @@ default_args = {
 }
 
 dag = DAG(
-    'process_customers_to_bronze_and_silver',
+    'process_customers',
     default_args=default_args,
     description='Process customer data to bronze and silver',
     schedule_interval=None,
 )
 
 def process_customers_data():
-    # Шлях до вхідних та вихідних даних
-    input_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\data\customers"
-    output_path_bronze = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\bronze"
-    output_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver"
+    # Set Hadoop-related environment variables
+    os.environ['HADOOP_HOME'] = r'C:\hadoop'
+    os.environ['PATH'] += os.pathsep + r'C:\hadoop\bin'
 
-    # Створення Spark сесії
-    spark = SparkSession.builder.appName("CustomerProcessing").getOrCreate()
+    # Шлях до вхідних даних (raw data) та вихідних каталогів (output)
+    input_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\data\customers\2022-08-5"
+    output_path_bronze = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\bronze\customers"
+    output_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\customers"
 
-    # Перелік всіх файлів в папці
-    files = os.listdir(input_path)
+    # Initialize Spark session
+    spark = SparkSession.builder.appName('FetchCustomersData').getOrCreate()
 
-    # Обробка кожного файлу
-    for file in files:
-        if file.endswith(".csv"):
-            # Отримання дати з імені файлу (якщо є)
-            date = file.split('__')[0]  # Дата, якщо файл має таку структуру
-            input_file_path = os.path.join(input_path, file)
+    # For bronze
+    for dirpath, dirnames, filenames in os.walk(input_path):
+        for filename in filenames:
+            if filename.endswith(".csv"):  # Filter for CSV files
+                filepath = os.path.join(dirpath, filename)
+                df = spark.read.csv(filepath, header=True, inferSchema=False)
+                result = os.path.join(output_path_bronze, filename)
+                df.toPandas().to_csv(result, index=False, header=True)
 
-            # Читання CSV файлу
-            df = spark.read.csv(input_file_path, header=True, inferSchema=False)
+    for dirpath, dirnames, filenames in os.walk(input_path):
+        for filename in filenames:
+            if filename.endswith(".csv"):  # Filter for CSV files
+                filepath = os.path.join(dirpath, filename)
+                df = spark.read.csv(filepath, header=True, inferSchema=False)
 
-            # Перетворюємо всі колонки в STRING для бронзи
-            df_bronze = df.select([col(c).cast("string").alias(c) for c in df.columns])
+                # Clean and rename columns for the silver layer
+                df_silver = (df
+                .withColumn("Id", trim(col("Id")))
+                .withColumn("FirstName", trim(col("FirstName")))
+                .withColumn("LastName", trim(col("LastName")))
+                .withColumn("Email", trim(col("Email")))
+                .withColumn("RegistrationDate", trim(col("RegistrationDate")))
+                .withColumn("State", trim(col("State")))
+                .select(
+                    col("Id").alias('client_id'),
+                    col("FirstName").alias('first_name'),
+                    col("LastName").alias('last_name'),
+                    col("Email").alias('email'),
+                    col("RegistrationDate").alias('registration_date'),
+                    col("State").alias('state'),
+                ))
 
-            # Шлях для збереження результатів у бронзу
-            output_file_path_bronze = os.path.join(output_path_bronze, date, f"{date}__customers.csv")
-
-            # Записуємо дані в CSV в папку `bronze`
-            df_bronze.write.option("header", "true").csv(output_file_path_bronze, mode="overwrite")
-            print(f"Processed and saved to bronze: {output_file_path_bronze}")
-
-            # Трансформація даних для silver:
-            # 1. Видалення рядків з порожніми значеннями в критичних колонках
-            df_cleaned = df.dropna(subset=['CustomerId', 'FirstName', 'LastName', 'Email', 'RegistrationDate', 'State'])
-
-            # 2. Перейменування колонок згідно з правилами компанії
-            df_cleaned = df_cleaned.withColumnRenamed("CustomerId", "client_id") \
-                                   .withColumnRenamed("FirstName", "first_name") \
-                                   .withColumnRenamed("LastName", "last_name") \
-                                   .withColumnRenamed("Email", "email") \
-                                   .withColumnRenamed("RegistrationDate", "registration_date") \
-                                   .withColumnRenamed("State", "state")
-
-            # 3. Очищення пробілів на початку/в кінці значень
-            df_cleaned = df_cleaned.select([trim(col(c)).alias(c) for c in df_cleaned.columns])
-
-            # Шлях для збереження результатів у silver
-            output_file_path_silver = os.path.join(output_path_silver, date, f"{date}__customers.csv")
-
-            # Записуємо очищені дані в CSV в папку `silver`
-            df_cleaned.write.option("header", "true").csv(output_file_path_silver, mode="overwrite")
-            print(f"Processed and saved to silver: {output_file_path_silver}")
-
+                # Save to the silver layer (cleaned data)
+                result_silver = os.path.join(output_path_silver, filename)
+                df_silver.toPandas().to_csv(result_silver, index=False, header=True)
+                print(f"Saved cleaned data to silver: {result_silver}")
     # Закриваємо сесію Spark
     spark.stop()
 

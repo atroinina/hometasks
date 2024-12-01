@@ -2,7 +2,7 @@ from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, coalesce
+import os
 
 # ініціалізація DAG
 default_args = {
@@ -21,37 +21,29 @@ dag = DAG(
 
 
 def process_user_profiles_to_gold():
-    # Шлях до даних `customers` та `user_profiles` на рівні silver
-    customers_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\customers"
-    user_profiles_path_silver = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\user_profiles"
-    output_path_gold = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\gold"
+    os.environ['HADOOP_HOME'] = r'C:\hadoop'
+    os.environ['PATH'] += os.pathsep + r'C:\hadoop\bin'
 
-    # Створення Spark сесії
-    spark = SparkSession.builder.appName("EnrichCustomersToGold").getOrCreate()
+    # Initialize Spark session
+    spark = SparkSession.builder.appName("EnrichCustomerData").getOrCreate()
 
-    # Читання даних з `silver`
-    df_customers = spark.read.json(customers_path_silver)
-    df_user_profiles = spark.read.json(user_profiles_path_silver)
+    # Define the paths to the customers CSV files and the user profiles JSON
+    customers_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\customers"
+    user_profiles_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\silver\proccesed_user_profiles"
 
-    # Об'єднуємо таблиці `customers` та `user_profiles` за `client_id`
-    df_enriched = df_customers.join(df_user_profiles, on="client_id", how="left")
-
-    # Заповнення відсутніх значень:
-    # - Імена та прізвища з профілю користувача
-    df_enriched = df_enriched.withColumn(
-        "first_name", coalesce(col("first_name"), col("user_profiles.first_name"))
-    ).withColumn(
-        "last_name", coalesce(col("last_name"), col("user_profiles.last_name"))
-    ).withColumn(
-        "state", coalesce(col("state"), col("user_profiles.state"))
+    # Combine all customers
+    df_customers = spark.read.csv(customers_path, header=True, inferSchema=False)
+    df_customers = df_customers.drop('first_name')
+    df_customers = df_customers.drop('last_name')
+    df_customers = df_customers.drop('state')
+    df_user_profiles = spark.read.json(user_profiles_path)
+    df_enriched = df_customers.join(
+        df_user_profiles,
+        df_customers.email == df_user_profiles.email,
+        how='left'
     )
 
-    # Додаємо всі відсутні колонки з `user_profiles` в таблицю `customers`
-    user_profile_columns = [col(c) for c in df_user_profiles.columns]
-    df_enriched = df_enriched.select("*", *user_profile_columns)
-
-    # Зберігаємо результат у `gold` як таблицю `user_profiles_enriched`
-    df_enriched.write.option("header", "true").json(f"{output_path_gold}/user_profiles_enriched", mode="overwrite")
+    df_enriched.show()
     # Закриваємо сесію Spark
     spark.stop()
 
