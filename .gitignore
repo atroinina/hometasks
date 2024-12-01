@@ -124,6 +124,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv10
 env/
 venv/
 ENV/
@@ -165,3 +166,4 @@ cython_debug/
 lesson_07/airflow/
 
 /lesson_02/raw/
+/.venv10/
