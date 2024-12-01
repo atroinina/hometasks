@@ -22,8 +22,8 @@ dag = DAG(
 
 def process_sales_data():
     # Шлях до вхідних та вихідних даних
-    input_path = "root/data/sales/"
-    output_path = "root/output/bronze/"
+    input_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\data\sales"
+    output_path = r"C:\Users\small\PycharmProjects\hometasks\lesson_17\output\bronze"
 
     # Створення Spark сесії
     spark = SparkSession.builder.appName("SalesProcessing").getOrCreate()
@@ -41,7 +41,7 @@ def process_sales_data():
             # Читання CSV файлу
             df = spark.read.csv(input_file_path, header=True, inferSchema=False)
 
-            # Кастуємо всі колонки в STRING
+            # Перетворюємо всі колонки в STRING
             df = df.select([col(c).cast("string").alias(c) for c in df.columns])
 
             # Шлях для збереження результатів
