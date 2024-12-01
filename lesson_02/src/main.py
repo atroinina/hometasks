@@ -25,11 +25,13 @@ def extract_sales_data():
     # Get data from request
     data = request.get_json()
     raw_dir = data.get('raw_dir')
+    dates = data.get('dates')
 
     try:
-        fetch_sales_data(raw_dir, ['2022-08-09','2022-08-10','2022-08-11'])
+        fetch_sales_data(raw_dir, dates)
         return jsonify({"message": "Sales data extracted successfully!"}), 201
     except Exception as e:
+        print(f"couldn't extract sales data: {e}")
         return jsonify({"message": str(e)}), 500
 
 
