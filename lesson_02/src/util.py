@@ -10,7 +10,6 @@ def get_authorization_key() -> str:
     :return: authorization key
     """
     load_dotenv()
-
     AUTH_TOKEN = os.getenv('AUTH_TOKEN')
 
     if not AUTH_TOKEN:

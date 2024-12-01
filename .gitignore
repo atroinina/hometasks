@@ -162,4 +162,6 @@ cython_debug/
 #.idea/
 
 # airflow
-lesson_07/airflow/logs
+lesson_07/airflow/
+
+/lesson_02/raw/
